@@ -3,8 +3,13 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-function run(cmd) {
-  return execSync(cmd, { encoding: 'utf8' }).trim();
+function run(cmd, options = {}) {
+  try {
+    return execSync(cmd, { encoding: 'utf8', ...options }).trim();
+  } catch (e) {
+    if (options.silent) return '';
+    throw e;
+  }
 }
 
 const version = process.argv[2] || process.env.VERSION;
@@ -14,31 +19,39 @@ if (!version) {
   process.exit(1);
 }
 const tag = `v${version}`;
-try { execSync('git fetch --prune --tags', { stdio: 'inherit' }); } catch (e) {}
 
 let tags = [];
 try {
   const raw = run('git tag --sort=-creatordate');
   tags = raw.split('\n').filter(Boolean);
 } catch (e) {
-  // ignore
+  console.log('No tags found, treating as first release');
 }
 
 let prevTag = '';
 const idx = tags.indexOf(tag);
-if (idx !== -1) {
+if (idx !== -1 && tags.length > 1) {
   prevTag = tags[idx + 1] || '';
-} else if (tags.length > 0) {
-  // tag not found in local tag list; fall back to most recent tag that's not the same
-  prevTag = tags.find(t => t !== tag) || '';
+} else if (tags.length > 0 && tags[0] !== tag) {
+  prevTag = tags[0];
 }
 
-const range = prevTag ? `${prevTag}..${tag}` : tag;
 let log = '';
-try {
-  log = run(`git log --pretty=format:%h::%s ${range}`);
-} catch (e) {
-  log = '';
+if (prevTag) {
+  const range = `${prevTag}..${tag}`;
+  try {
+    log = run(`git log --pretty=format:%h::%s ${range}`);
+  } catch (e) {
+    log = '';
+  }
+}
+
+if (!log && !prevTag) {
+  try {
+    log = run(`git log --pretty=format:%h::%s ${tag}`);
+  } catch (e) {
+    log = '';
+  }
 }
 
 if (!log) {
@@ -46,7 +59,7 @@ if (!log) {
   process.exit(0);
 }
 
-const commits = log.split('\n').map(line => {
+const commits = log.split('\n').map((line) => {
   const [hash, ...rest] = line.split('::');
   return { hash, message: rest.join('::') };
 });
@@ -82,7 +95,20 @@ for (const c of commits) {
 
 const date = new Date().toISOString().slice(0, 10);
 let fragment = `## [${version}] - ${date}\n\n`;
-const order = ['Added', 'Changed', 'Fixed', 'Performance', 'Documentation', 'Refactor', 'Chores', 'Tests', 'Style', 'CI', 'Build', 'Others'];
+const order = [
+  'Added',
+  'Changed',
+  'Fixed',
+  'Performance',
+  'Documentation',
+  'Refactor',
+  'Chores',
+  'Tests',
+  'Style',
+  'CI',
+  'Build',
+  'Others',
+];
 for (const key of order) {
   if (sections[key] && sections[key].length) {
     fragment += `### ${key}\n`;
@@ -95,7 +121,8 @@ let original = '';
 if (fs.existsSync(changelogPath)) {
   original = fs.readFileSync(changelogPath, 'utf8');
 } else {
-  original = '# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n';
+  original =
+    '# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n';
 }
 
 // If the changelog already contains this version header, skip to avoid duplicates
