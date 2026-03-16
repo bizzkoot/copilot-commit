@@ -63,10 +63,14 @@ jobs:
             git commit -m "chore(release): update CHANGELOG for v${{ steps.version.outputs.version }}"
             git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
             git push origin HEAD:main
+            git tag -f v${{ steps.version.outputs.version }}
+            git push origin v${{ steps.version.outputs.version }} --force
           fi
 
       - name: Extract release notes
-        run: node scripts/update-changelog.js "${{ steps.version.outputs.version }}" --extract
+        run: |
+          node scripts/update-changelog.js "${{ steps.version.outputs.version }}" --extract
+          printf "\n\n**Full Changelog**: https://github.com/${{ github.repository }}/commits/v${{ steps.version.outputs.version }}" >> RELEASE_NOTES.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

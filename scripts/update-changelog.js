@@ -126,8 +126,23 @@ if (fs.existsSync(changelogPath)) {
     '# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n';
 }
 
+// Extract only this version's changelog for release notes (must check before duplicate check!)
+if (extractOnly) {
+  const content = fs.existsSync(changelogPath) ? original : '';
+  if (content) {
+    const extracted = extractVersionSection(content, version);
+    const outputPath = path.join(process.cwd(), 'RELEASE_NOTES.md');
+    fs.writeFileSync(outputPath, extracted, 'utf8');
+    console.log('Extracted release notes to RELEASE_NOTES.md for', version);
+  }
+  process.exit(0);
+}
+
 // If the changelog already contains this version header, skip to avoid duplicates
-const versionHeaderRegex = new RegExp('^## \[' + escapeRegExp(version) + '\]', 'm');
+const versionHeaderRegex = new RegExp(
+  '^## \\[' + escapeRegExp(version) + '\\](?: - .*)?$',
+  'm',
+);
 if (versionHeaderRegex.test(original)) {
   console.log(`CHANGELOG.md already contains entry for ${version}; skipping update.`);
   process.exit(0);
@@ -155,19 +170,6 @@ if (dryRun) {
   process.exit(0);
 }
 
-// Extract only this version's changelog for release notes
-if (extractOnly) {
-  const changelogPath = path.join(process.cwd(), 'CHANGELOG.md');
-  if (fs.existsSync(changelogPath)) {
-    const content = fs.readFileSync(changelogPath, 'utf8');
-    const extracted = extractVersionSection(content, version);
-    const outputPath = path.join(process.cwd(), 'RELEASE_NOTES.md');
-    fs.writeFileSync(outputPath, extracted, 'utf8');
-    console.log('Extracted release notes to RELEASE_NOTES.md for', version);
-  }
-  process.exit(0);
-}
-
 fs.writeFileSync(changelogPath, newContent, 'utf8');
 console.log('CHANGELOG.md updated for', version);
 process.exit(0);
@@ -182,11 +184,13 @@ function extractVersionSection(changelog, version) {
   if (!match) return '';
 
   const startIndex = match.index;
-  const afterMatch = changelog.slice(startIndex);
-  const nextVersionMatch = afterMatch.match(/^##\s+\[/m);
+  const afterVersionHeader = changelog.slice(startIndex + match[0].length);
+  const nextVersionMatch = afterVersionHeader.match(/^##\s+\[/m);
 
   if (nextVersionMatch) {
-    return changelog.slice(startIndex, startIndex + nextVersionMatch.index).trim();
+    return changelog
+      .slice(startIndex, startIndex + match[0].length + nextVersionMatch.index)
+      .trim();
   }
-  return afterMatch.trim();
+  return changelog.slice(startIndex).trim();
 }
