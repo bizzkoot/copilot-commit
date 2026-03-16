@@ -3,6 +3,16 @@
 ## [0.0.1] - 2026-03-16
 
 ### Fixed
+- extract version-specific changelog for release notes (a1381fa)
+- improve changelog script for first release handling (8daf1e5)
+
+### Chores
+- update CHANGELOG for v0.0.1 (5f764b4)
+- initialize project and ci/cd (e13cfba)
+
+## [0.0.1] - 2026-03-16
+
+### Fixed
 - improve changelog script for first release handling (8daf1e5)
 
 ### Chores
