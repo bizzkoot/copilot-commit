@@ -1,0 +1,182 @@
+{
+  "name": "copilot-commit",
+  "displayName": "Copilot Commit",
+  "description": "Generate structured, semantic commit messages using GitHub Copilot's language models",
+  "version": "0.0.1",
+  "publisher": "bizzkoot",
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bizzkoot/copilot-commit"
+  },
+  "engines": {
+    "vscode": "^1.110.0"
+  },
+  "categories": [
+    "SCM Providers",
+    "AI",
+    "Other"
+  ],
+  "keywords": [
+    "copilot",
+    "commit",
+    "git",
+    "ai",
+    "commit message",
+    "conventional commits"
+  ],
+  "extensionDependencies": [
+    "vscode.git"
+  ],
+  "activationEvents": [
+    "workspaceContains:.git"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "copilotCommit.generateCommitMessage",
+        "title": "Generate Commit Message",
+        "category": "Copilot Commit",
+        "icon": "$(hubot)"
+      },
+      {
+        "command": "copilotCommit.selectModel",
+        "title": "Select Model",
+        "category": "Copilot Commit"
+      },
+      {
+        "command": "copilotCommit.selectStyle",
+        "title": "Select Commit Style",
+        "category": "Copilot Commit"
+      }
+    ],
+    "menus": {
+      "scm/title": [
+        {
+          "command": "copilotCommit.generateCommitMessage",
+          "group": "navigation",
+          "when": "scmProvider == git"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "copilotCommit.generateCommitMessage",
+        "key": "ctrl+shift+g g",
+        "mac": "cmd+shift+g g"
+      }
+    ],
+    "configuration": {
+      "title": "Copilot Commit",
+      "properties": {
+        "copilotCommit.defaultModel": {
+          "type": "string",
+          "default": "auto",
+          "markdownDescription": "Default Copilot model family to use for commit generation. Set to `auto` to use the first available model.\n\n[$(sparkle) Select a model interactively](command:copilotCommit.selectModel)",
+          "order": 1
+        },
+        "copilotCommit.useCurrentChatModel": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use the current model selected in Copilot Chat. When enabled, this overrides the defaultModel setting.",
+          "order": 2
+        },
+        "copilotCommit.defaultStyle": {
+          "type": "string",
+          "default": "conventional",
+          "enum": [
+            "conventional",
+            "simple",
+            "oneline",
+            "github",
+            "emoji",
+            "detailed",
+            "gitmoji",
+            "angular"
+          ],
+          "enumItemLabels": [
+            "Conventional Commits",
+            "Simple Descriptive",
+            "One-Line Summary",
+            "GitHub-Style",
+            "Semantic Emoji",
+            "Detailed/Verbose",
+            "Gitmoji (Rich Emoji)",
+            "Angular Style"
+          ],
+          "markdownEnumDescriptions": [
+            "Structured format: `<type>(<scope>): <summary>` with optional body\n\n---\n\n**Example output:**\n\n> feat(auth): add login endpoint with JWT validation\n>\n> \\- Implement token refresh flow\n>\n> \\- Add password hashing with bcrypt",
+            "Clear, human-readable description without strict conventions\n\n---\n\n**Example output:**\n\n> Add login endpoint with JWT token validation\n>\n> Implements secure authentication using JSON Web Tokens with refresh support.",
+            "Single concise line, perfect for small changes\n\n---\n\n**Example output:**\n\n> add login endpoint with jwt validation",
+            "Summary with optional issue/PR references and footers\n\n---\n\n**Example output:**\n\n> Add login endpoint with JWT validation\n>\n> Implement secure auth flow with token refresh and session management.\n>\n> Closes #42",
+            "Conventional commits with emoji prefixes for visual scanning\n\n---\n\n**Example output:**\n\n> ✨ feat(auth): add login endpoint with JWT validation\n>\n> \\- Implement token refresh flow\n>\n> \\- Add password hashing with bcrypt",
+            "Multi-paragraph with full context, reasoning, and impact analysis\n\n---\n\n**Example output:**\n\n> Add login endpoint\n>\n> The app lacked user authentication, blocking all protected routes from functioning.\n>\n> Adds a /login POST endpoint using JWT with 15-minute expiry and refresh tokens stored in httpOnly cookies.\n>\n> Impacts: middleware auth check, user session table, rate limiting.",
+            "Full gitmoji spec with 70+ emojis mapped to change types\n\n---\n\n**Example output:**\n\n> ✨ add login endpoint with jwt validation\n>\n> \\- Add JWT token generation and refresh\n>\n> \\- Add bcrypt password hashing",
+            "Angular commit convention with BREAKING CHANGE and footer support\n\n---\n\n**Example output:**\n\n> feat(auth): add login endpoint\n>\n> Implement JWT-based authentication with refresh tokens and password hashing using bcrypt.\n>\n> Closes #42"
+          ],
+          "description": "Default commit message style template",
+          "order": 3
+        },
+        "copilotCommit.customPrompts": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Display name for this prompt template"
+              },
+              "template": {
+                "type": "string",
+                "description": "The prompt template. Include 'Diff:' at the end where the diff will be appended."
+              },
+              "description": {
+                "type": "string",
+                "description": "Short description of this style"
+              }
+            },
+            "required": [
+              "name",
+              "template"
+            ]
+          },
+          "description": "Custom prompt templates for commit messages. Add your own styles here.",
+          "order": 4
+        },
+        "copilotCommit.showModelInStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the current model indicator in the status bar",
+          "order": 5
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src/",
+    "format": "prettier --write 'src/**/*.ts'",
+    "test": "tsc -p src/test/tsconfig.test.json && node scripts/setup-test-mock.js && mocha",
+    "package": "npx @vscode/vsce package",
+    "changelog:generate": "VERSION=$(node -p \"require('./package.json').version\") node scripts/update-changelog.js $VERSION",
+    "release:prepare-local": "npm run compile && npm test && npm run changelog:generate"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^25.5.0",
+    "@types/vscode": "^1.110.0",
+    "@vscode/vsce": "^3.7.1",
+    "eslint": "^9.0.0",
+    "mocha": "^11.0.0",
+    "prettier": "^3.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.0.0"
+  }
+}
