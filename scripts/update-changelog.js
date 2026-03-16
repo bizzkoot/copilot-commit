@@ -14,6 +14,7 @@ function run(cmd, options = {}) {
 
 const version = process.argv[2] || process.env.VERSION;
 const dryRun = process.argv.includes('--dry-run') || process.env.DRY_RUN === '1';
+const extractOnly = process.argv.includes('--extract') || process.env.EXTRACT === '1';
 if (!version) {
   console.error('Usage: node scripts/update-changelog.js <version> [--dry-run]');
   process.exit(1);
@@ -154,10 +155,38 @@ if (dryRun) {
   process.exit(0);
 }
 
+// Extract only this version's changelog for release notes
+if (extractOnly) {
+  const changelogPath = path.join(process.cwd(), 'CHANGELOG.md');
+  if (fs.existsSync(changelogPath)) {
+    const content = fs.readFileSync(changelogPath, 'utf8');
+    const extracted = extractVersionSection(content, version);
+    const outputPath = path.join(process.cwd(), 'RELEASE_NOTES.md');
+    fs.writeFileSync(outputPath, extracted, 'utf8');
+    console.log('Extracted release notes to RELEASE_NOTES.md for', version);
+  }
+  process.exit(0);
+}
+
 fs.writeFileSync(changelogPath, newContent, 'utf8');
 console.log('CHANGELOG.md updated for', version);
 process.exit(0);
 
 function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function extractVersionSection(changelog, version) {
+  const versionRegex = new RegExp('^## \\[' + escapeRegExp(version) + '\\].*$', 'm');
+  const match = changelog.match(versionRegex);
+  if (!match) return '';
+
+  const startIndex = match.index;
+  const afterMatch = changelog.slice(startIndex);
+  const nextVersionMatch = afterMatch.match(/^##\s+\[/m);
+
+  if (nextVersionMatch) {
+    return changelog.slice(startIndex, startIndex + nextVersionMatch.index).trim();
+  }
+  return afterMatch.trim();
 }

@@ -65,11 +65,14 @@ jobs:
             git push origin HEAD:main
           fi
 
+      - name: Extract release notes
+        run: node scripts/update-changelog.js "${{ steps.version.outputs.version }}" --extract
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: '*.vsix'
-          generate_release_notes: true
+          body_path: RELEASE_NOTES.md
           draft: false
           prerelease: ${{ contains(steps.version.outputs.version, '-') }}
 
